@@ -6,4 +6,4 @@ class CanvasConfig:
     height: int
 
 # Create an instance of the CanvasConfig dataclass
-canvas_config = CanvasConfig(width=1850, height=925)
+canvas_config = CanvasConfig(width=37, height=19)

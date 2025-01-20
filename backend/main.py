@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import math
 import asyncio
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from config import canvas_config
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,16 +37,17 @@ class KeyPressList(BaseModel):
 
 # Define a model for cursor position
 class CursorPosition(BaseModel):
-    x: float  # X-coordinate (float)
-    y: float  # Y-coordinate (float)
+    x: int
+    y: int
 
 
-cursor_position = CursorPosition(x=925, y=456)
+cursor_position = CursorPosition(x=19, y=9)
 
 # Helper function to calculate time based on the number of steps
-def calculate_time(steps: int) -> float:
-    logger.debug(f"Calculating time for {steps} steps.")
-    return 3 * math.sqrt(steps) * 1000  # Time in miliseconds
+def calculate_time(steps_x: int, steps_y: int) -> float:
+    logger.debug(f"Calculating time for steps.")
+    distance = math.sqrt(steps_x ** 2 + steps_y ** 2)
+    return 3 * math.sqrt(distance) * 1000  # Time in miliseconds
 
 # Helper function to simulate the process with delay
 async def simulate_delay(delay):
@@ -65,7 +66,8 @@ async def log_request(request: Request, call_next):
 @app.get("/get_cursor_position/")
 async def get_cursor_position():
     """Endpoint to get the current cursor position."""
-    return cursor_position
+    global canvas_config
+    return {"current_position": cursor_position, "size": canvas_config}
 
 # Endpoint to get the new position and move duration
 @app.post("/move_cursor/")
@@ -94,28 +96,27 @@ async def move_cursor(key_press_list: KeyPressList):
         steps_y = abs(keypresses["down"] - keypresses["up"])
 
         # Calculate the new position based on the key presses
-        new_x += (keypresses["right"] - keypresses["left"])*50
-        new_y += (keypresses["down"] - keypresses["up"])*50
+        new_x += (keypresses["right"] - keypresses["left"])
+        new_y += (keypresses["down"] - keypresses["up"])
 
         if new_x <= 0:
-            new_x = 0
-            steps_x = abs(cursor_position.x)//50
+            new_x = 1
+            steps_x = abs(cursor_position.x)
 
         if new_y <= 0:
-            new_y = 0
-            steps_y = abs(cursor_position.y)//50
+            new_y = 1
+            steps_y = abs(cursor_position.y)
         
         if new_x >= canvas_config.width:
             new_x = canvas_config.width
-            steps_x = abs(new_x - cursor_position.x)//50
+            steps_x = abs(new_x - cursor_position.x)
 
         if new_y >= canvas_config.height:
             new_y = canvas_config.height
-            steps_y = abs(new_y - cursor_position.y)//50
+            steps_y = abs(new_y - cursor_position.y)
 
         # Calculate steps and time to move
-        steps = steps_x + steps_y
-        time_to_move = calculate_time(steps)
+        time_to_move = calculate_time(steps_x, steps_y)
 
         logger.info(f"Moving cursor to new position: ({new_x}, {new_y}) with a move time of {time_to_move}ms.")
 

@@ -1,0 +1,26 @@
+version: "3"
+services:
+  fastapi:
+    build:
+      context: ./backend
+    restart: always
+    ports:
+      - "8000:8000"
+    networks:
+      - app-network
+
+  client:
+    build:
+      context: ./cursor-app
+    ports:
+      - "80:3000"
+    networks:
+      - app-network
+    stdin_open: true
+    command: npm start
+    depends_on:
+      - fastapi
+
+networks:
+  app-network:
+    driver: bridge
